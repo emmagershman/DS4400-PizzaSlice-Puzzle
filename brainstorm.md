@@ -1,5 +1,8 @@
 Process:
-1) Taste 1 slice from every pizza shop
+1) Taste 3-4 slices from every pizza shop
+    - Determine based on minimal number of initial slices needed to avoid eliminating the true best shop (compare accuracy)
+2) Calculate a confidence interval for each shop (mean +- z * s/sqrt(n))
+3) Eliminate shops where the upper bound is below the leader's lower bound
 2) For the top 40% of shops (top 3/8 shops), we go for a second round of tasting
     Reasoning: the "best" pizza should not only have the potential to taste the best once, but should be consistently good. If a shop that didn't           make it into the top three has the potential of very good tasting pizza, we still don't want to consider it the best because it has more variability and is not consistently good.
 3) Consider only shops where the second slice of pizza is as good or better. If it's worse, rule it out. From there, we can determine consistency and average pizza quality.
