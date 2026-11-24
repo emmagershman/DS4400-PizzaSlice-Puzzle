@@ -4,8 +4,14 @@ Process:
 2) Calculate a confidence interval for each shop (mean +- z * s/sqrt(n))
 3) Eliminate shops where the upper bound is below the leader's lower bound
 2) For the top 40% of shops (top 3/8 shops), we go for a second round of tasting
-    Reasoning: the "best" pizza should not only have the potential to taste the best once, but should be consistently good. If a shop that didn't           make it into the top three has the potential of very good tasting pizza, we still don't want to consider it the best because it has more variability and is not consistently good.
-3) Consider only shops where the second slice of pizza is as good or better. If it's worse, rule it out. From there, we can determine consistency and average pizza quality.
+    Reasoning: the "best" pizza should not only have the potential to taste the best once, but should be consistently good. If a shop that didn't make it into the top three has the potential of very good tasting pizza, we still don't want to consider it the best because it has more variability and is not consistently good.
+3) Consider only shops where the next round of pizza crawl makes the recalculating confidence interval upper bound lower than the leader's lower bound
+
+Open questions:
+1) How do we determine the minimum number of baseline slices we should buy from each shop?
+2) How do we figure out the number of additional slices to buy from the variable places?
+3) Does cross-entropy apply to this situation? If so, how should we apply it?
+4) What should be the criteria for ruling out a place?
 
 Considerations:
 1. Randomize when each pizza shop tasting occurs
@@ -35,3 +41,12 @@ Things to keep in mind:
 - Best pizza is solely defined by the highest true average rating -- standard deviation / consistency is NOT taken into consideration
 - Each crawl does not require that every shop is visited
 - Crawls do not retain previous tasting history
+
+Ideas for visualizations:
+- x-axis = number slices
+- y-axis = confidence level
+- 8 lines, each representing a different shop
+
+* table showing the n0 and threshold we tested and the results (# slices, accuracy) in each box
+
+* as n0 changed, how did the necessary threshold (or # slices to achieve 95% accuracy) change?
