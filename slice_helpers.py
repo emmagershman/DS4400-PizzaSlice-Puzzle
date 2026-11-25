@@ -3,7 +3,7 @@ import math
 
 # ---- settings ----
 N0 = 3             # step 1: slices per shop to start
-THRESHOLD = 0.86 # step 5: stop when the leader's P(best) reaches this
+THRESHOLD = 0.86   # step 5: stop when the leader's P(best) reaches this
 N_ROUND = 500      # step 4: rounds of guesses per P(best) check
 SEED = 0           # seeds the guesses, so reruns give identical results
 
@@ -198,22 +198,29 @@ def find_close_race(max_gap=0.5, slices=(120, 400), start=0):
 
 
 def plot_pbest(seed):
-    """One crawl: P(best) of every shop vs slices tasted so far."""
+    """One crawl: P(best) of every shop vs slices tasted so far. A shop's
+    line ends at the first check after its last slice, so you can see
+    shops drop out of the race over time."""
     import matplotlib.pyplot as plt
+    from matplotlib.lines import Line2D
     from slice_crawl import SliceCrawl
 
     crawl = SliceCrawl.sample(seed=seed)
     trace = []
     guess = run_crawl(crawl, trace=trace)
     x = [n for n, _ in trace]
+    # slice number (1-based) of each shop's last slice
+    last = {shop: k for k, (shop, _) in enumerate(crawl.history, start=1)}
 
-    fig, ax = plt.subplots(figsize=(8, 4.2), facecolor=SURFACE)
+    fig, ax = plt.subplots(figsize=(8, 4.4), facecolor=SURFACE)
     ax.set_facecolor(SURFACE)
     for shop in range(crawl.n_shop):
         y = [p[shop] for _, p in trace]
-        ax.plot(x, y, color=SHOP_COLORS[shop], linewidth=2,
-                drawstyle='steps-post', label=f'shop {shop}')
-        if y[-1] > 0.05:                  # direct-label the final contenders
+        # first check at or after this shop's last slice: the line ends here
+        cut = next((i for i, n in enumerate(x) if n >= last[shop]), len(x) - 1)
+        ax.plot(x[:cut + 1], y[:cut + 1], color=SHOP_COLORS[shop],
+                linewidth=2, drawstyle='steps-post')
+        if cut == len(x) - 1 and y[-1] > 0.05:   # label the final contenders
             ax.annotate(f'shop {shop}', (x[-1], y[-1]), xytext=(8, 0),
                         textcoords='offset points', va='center',
                         fontsize=9, color=INK_2)
@@ -233,11 +240,59 @@ def plot_pbest(seed):
         ax.spines[side].set_visible(False)
     for side in ('left', 'bottom'):
         ax.spines[side].set_color('#c3c2b7')
-    ax.legend(ncol=4, frameon=False, fontsize=9, loc='upper center',
-              bbox_to_anchor=(.5, -.18), labelcolor=INK_2)
+
+    handles = [Line2D([], [], color=c, linewidth=2) for c in SHOP_COLORS]
+    labels = [f'shop {s}' for s in range(crawl.n_shop)]
+    ax.legend(handles, labels, ncol=4, frameon=False, fontsize=9,
+              loc='upper center', bbox_to_anchor=(.5, -.16), labelcolor=INK_2)
     verdict = 'right' if guess == crawl._best else 'wrong'
     ax.set_title(f'P(best) for each shop during one crawl (seed {seed}): '
                  f'named shop {guess} after {crawl.n_taste} slices ({verdict})',
+                 color=INK, fontsize=11, loc='left')
+    fig.tight_layout()
+    plt.show()
+
+
+def plot_slices_per_shop(seed):
+    """One crawl: how many slices each shop got by the end, split into the
+    warm-up (gray) and the slices top_two_pick chose afterwards (color)."""
+    import matplotlib.pyplot as plt
+    from slice_crawl import SliceCrawl
+
+    crawl = SliceCrawl.sample(seed=seed)
+    guess = run_crawl(crawl)
+    total = [0] * crawl.n_shop
+    for shop, _ in crawl.history:
+        total[shop] += 1
+    extra = [t - N0 for t in total]
+    shops = range(crawl.n_shop)
+
+    fig, ax = plt.subplots(figsize=(8, 4), facecolor=SURFACE)
+    ax.set_facecolor(SURFACE)
+    ax.bar(shops, [N0] * crawl.n_shop, width=.6, color=GRID_LINE,
+           edgecolor=SURFACE, linewidth=2, label='warm-up')
+    ax.bar(shops, extra, bottom=N0, width=.6, color=SHOP_COLORS,
+           edgecolor=SURFACE, linewidth=2)
+    for s in shops:
+        ax.text(s, total[s] + .3, str(total[s]), ha='center', va='bottom',
+                fontsize=10, color=INK, fontweight='bold' if s == guess else 'normal')
+    ax.text(guess, total[guess] + max(total) * .09, 'winner', ha='center',
+            va='bottom', fontsize=9, color=INK_2)
+
+    ax.set_xticks(list(shops), [f'shop {s}' for s in shops])
+    ax.set_ylabel('slices tasted', color=INK_2)
+    ax.set_ylim(0, max(total) * 1.22)
+    ax.yaxis.set_major_locator(plt.MaxNLocator(integer=True))
+    ax.grid(axis='y', color=GRID_LINE, linewidth=.8)
+    ax.set_axisbelow(True)
+    ax.tick_params(colors=INK_2, length=0)
+    for side in ('top', 'right', 'left'):
+        ax.spines[side].set_visible(False)
+    ax.spines['bottom'].set_color('#c3c2b7')
+    ax.legend(frameon=False, fontsize=9, labelcolor=INK_2, loc='upper left')
+    verdict = 'right' if guess == crawl._best else 'wrong'
+    ax.set_title(f'Slices per shop in one crawl (seed {seed}): {crawl.n_taste} '
+                 f'in total, named shop {guess} ({verdict})',
                  color=INK, fontsize=11, loc='left')
     fig.tight_layout()
     plt.show()
