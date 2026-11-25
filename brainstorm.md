@@ -8,6 +8,14 @@ Refined process:
 
 TLDR; We keep imagining plausible true averages for every shop, count how often each one comes out on top, and stop tasting once one shop wins at least 86% of the time.
 
+Open questions:  
+- can you explain prob_best a little more? specifically the part where it draws the true mean for every shop 500 times.
+- why is estimate indented under make_estimator?
+- how do you know when to pick sample_winner and when to pick top_two_pick? do you only select sample winner when P(best) is above the threshold? and what does it mean to taste 5% more slices chosen by top_two_pick?
+- do we need slice_ci.py? if I finalize with the bayesian model, can i delete the file? please do not delete anything without my permission. i am just curious.
+- what is score in tune.py used for?
+- if i end up going with the bayesian method, do i need to make tune.py accomodate the confidence interval method or can it be purely tuning the bayesian method?
+
 Process:
 1) Taste 3-4 slices from every pizza shop
     - Determine based on minimal number of initial slices needed to avoid eliminating the true best shop (compare accuracy)
