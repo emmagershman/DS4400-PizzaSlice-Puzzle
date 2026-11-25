@@ -45,3 +45,13 @@ def top_two_pick(summaries, rng):
         if b != a:
             return b
     return a
+
+
+def taste_more(crawl, ratings, summaries, rng):
+    """Step 6: taste ~5% more slices (at least 1), each chosen by
+    top_two_pick, updating that shop's ratings and summary as we go.
+    Re-checking P(best) only every ~5% keeps the estimator fast."""
+    for _ in range(max(1, crawl.n_taste // 20)):
+        pick = top_two_pick(summaries, rng)
+        ratings[pick].append(crawl.taste(pick))
+        summaries[pick] = summarize(ratings[pick])
