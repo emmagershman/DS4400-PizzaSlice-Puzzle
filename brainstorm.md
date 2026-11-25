@@ -1,3 +1,13 @@
+Refined process:
+1) Taste n0 slices (we chose 3) from each shop
+2) Compute the sample mean and standard deviation of its slices
+3) Compute the standard error (standard deviation / sqrt(n)), where n = number of slices tasted from that shop so far. More slices results in a smaller standard error, reflecting the higher levels of certainty.
+4) Guess the true mean for each shop 500 times. We do this by adding a reasonable shift to the sample mean based on the standard error scaled. The formula is Guess = mean + (standard error * draw_t), where draw_t is a random number from a bell curve centered at 0. This means that small shifts are more common and big shifts are rarer. The width/spread of the t-distribution curve is controlled by the degrees of freedom (df = n - 1) to account for the greater width/spread that comes with fewer samples.
+5) For each round, we compare the shops guesses. We count how many times each shop has won (had the highest guessed average rating). Then, we determine the current "leader" based on which shop had won the most rounds. We also calculated P(best) = shop's wins / 500 for each shop. Once a shop's P(best) exceeds the set threshold of 0.86, that shop is determined to be the best pizza shop. However, if no shops P(best) >= 0.86, then we taste more slices (chosen by top_two_pick) and return to step 2 with the updated data.
+  
+
+TLDR; We keep imagining plausible true averages for every shop, count how often each one comes out on top, and stop tasting once one shop wins at least 86% of the time.
+
 Process:
 1) Taste 3-4 slices from every pizza shop
     - Determine based on minimal number of initial slices needed to avoid eliminating the true best shop (compare accuracy)
