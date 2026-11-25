@@ -3,7 +3,7 @@ import math
 
 # ---- settings ----
 N0 = 3             # step 1: slices per shop to start
-THRESHOLD = 0.86   # step 5: stop when the leader's P(best) reaches this
+THRESHOLD = 0.90   # step 5: stop when the leader's P(best) reaches this
 N_ROUND = 500      # step 4: rounds of guesses per P(best) check
 SEED = 0           # seeds the guesses, so reruns give identical results
 
