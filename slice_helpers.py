@@ -62,7 +62,7 @@ def taste_more(crawl, ratings, summaries, rng):
 # estimator code above still runs anywhere (e.g. the practice site).
 
 GRID_N0 = [3, 4, 6]
-GRID_THRESHOLD = [0.86, 0.88, 0.90, 0.92]
+GRID_THRESHOLD = [0.80, 0.82, 0.84, 0.86, 0.88, 0.90, 0.92]
 GRID_SEEDS = range(10, 35)     # 25 runs of 200 crawls, like 25 evaluate() calls
 GRID_CSV = 'grid_results.csv'
 
@@ -98,21 +98,23 @@ def _grid_job(args):
     return n0, thr, seed, guess == crawl._best, crawl.n_taste
 
 
-def run_grid(path=GRID_CSV):
+def run_grid(path=GRID_CSV, thresholds=GRID_THRESHOLD, append=False):
     """Run every (n0, threshold) on 25 runs of 200 crawls; save each run's
-    accuracy and mean slices to a CSV. Slow (~20 min), so run it once."""
+    accuracy and mean slices to a CSV. Slow (~20 min), so run it once.
+    append=True adds rows for new thresholds to an existing CSV."""
     import csv
     from multiprocessing import Pool
-    jobs = [(n0, thr, s, i) for n0 in GRID_N0 for thr in GRID_THRESHOLD
+    jobs = [(n0, thr, s, i) for n0 in GRID_N0 for thr in thresholds
             for s in GRID_SEEDS for i in range(200)]
     with Pool() as pool:
         out = pool.map(_grid_job, jobs, chunksize=20)
     runs = {}
     for n0, thr, seed, correct, slices in out:
         runs.setdefault((n0, thr, seed), []).append((correct, slices))
-    with open(path, 'w', newline='') as f:
+    with open(path, 'a' if append else 'w', newline='') as f:
         w = csv.writer(f)
-        w.writerow(['n0', 'threshold', 'seed', 'accuracy', 'mean_slices'])
+        if not append:
+            w.writerow(['n0', 'threshold', 'seed', 'accuracy', 'mean_slices'])
         for (n0, thr, seed), r in runs.items():
             w.writerow([n0, thr, seed, sum(c for c, _ in r) / len(r),
                         sum(s for _, s in r) / len(r)])
@@ -136,18 +138,23 @@ def plot_grid_table(path=GRID_CSV, chosen=(N0, THRESHOLD)):
     # every run has 200 crawls, so averaging the runs = accuracy over all crawls
     acc = {k: sum(a for a, _ in v) / len(v) for k, v in cells.items()}
     sl = {k: sum(s for _, s in v) / len(v) for k, v in cells.items()}
-    cheapest = min((k for k in cells if acc[k] >= 0.95), key=sl.get)
+    # 95% margin of error on accuracy; green only if the whole range is >= 95%
+    moe = {k: 1.96 * math.sqrt(acc[k] * (1 - acc[k]) / (200 * len(v)))
+           for k, v in cells.items()}
+    sure = {k: acc[k] - moe[k] >= 0.95 for k in cells}
+    cheapest = min((k for k in cells if sure[k]), key=sl.get)
 
-    fig, ax = plt.subplots(figsize=(8, 3.6), facecolor=SURFACE)
+    fig, ax = plt.subplots(figsize=(12, 3.6), facecolor=SURFACE)
     ax.set_facecolor(SURFACE)
     for r, n0 in enumerate(GRID_N0):
         for c, thr in enumerate(GRID_THRESHOLD):
-            ok = acc[(n0, thr)] >= 0.95
+            ok = sure[(n0, thr)]
             slices = sl[(n0, thr)]
             ax.add_patch(Rectangle((c + .03, r + .03), .94, .94, linewidth=0,
                                    facecolor=GOOD_WASH if ok else FAIL_WASH))
             mark = '✓ ' if ok else ''
-            ax.text(c + .5, r + .4, f'{mark}{acc[(n0, thr)]:.1%} correct',
+            ax.text(c + .5, r + .4,
+                    f'{mark}{acc[(n0, thr)]:.1%} ± {moe[(n0, thr)]:.1%}',
                     ha='center', va='center', fontsize=11, color=INK,
                     fontweight='bold' if ok else 'normal')
             ax.text(c + .5, r + .66, f'{slices:.0f} slices', ha='center',
@@ -173,9 +180,10 @@ def plot_grid_table(path=GRID_CSV, chosen=(N0, THRESHOLD)):
     fig.suptitle(f'Accuracy and average slices per crawl, over {n_crawls:,} '
                  'crawls per setting', color=INK, fontsize=12,
                  x=0.02, ha='left')
-    why = (': the cheapest setting that clears 95%'
+    why = (': the cheapest setting that confidently clears 95%'
            if cheapest == tuple(chosen) else '')
-    fig.text(0.02, 0.01, f'Green ✓ = at least 95% correct. '
+    fig.text(0.02, 0.01, 'Green ✓ = confidently at least 95% correct '
+             '(whole ± range above 95%). '
              f'Outlined = our choice{why}.', color=MUTED, fontsize=9)
     fig.tight_layout(rect=(0, 0.05, 1, 1))
     plt.show()
